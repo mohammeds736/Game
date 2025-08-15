@@ -1,396 +1,201 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-  <title>Diabetes Runner | لعبة التوعية بالسكر</title>
-  <style>
-    html, body { height: 100%; margin: 0; background: #0b1020; font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"; }
-    #game { width: 100%; height: 100%; }
-    .hud {
-      position: absolute; inset-inline: 0; top: 0; display: grid; grid-template-columns: 1fr auto; gap: .5rem; align-items: start; padding: .75rem; pointer-events: none; }
-    .panel { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(6px); color: #e6ecff; border-radius: 16px; padding: .75rem 1rem; box-shadow: 0 8px 24px rgba(0,0,0,.2);}    
-    .panel h3 { margin: 0 0 .5rem; font-size: .95rem; font-weight: 700; letter-spacing: .3px; }
-    .row { display: flex; align-items: center; gap: .5rem; margin: .25rem 0; }
-    .tag { font-size: .75rem; padding: .15rem .5rem; border-radius: 999px; background: rgba(255,255,255,.12); }
-    .meter { height: 10px; width: 220px; background: rgba(255,255,255,.12); border-radius: 999px; overflow: hidden; }
-    .meter > div { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #f59e0b, #ef4444); transition: width .25s ease; }
-
-    .controls { position: absolute; inset-inline: 0; bottom: .75rem; display: flex; justify-content: center; gap: .5rem; pointer-events: none; }
-    .btn { pointer-events: auto; user-select: none; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.08); color: #e6ecff; padding: .6rem .9rem; border-radius: 14px; font-weight: 700; letter-spacing: .3px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
-    .btn:active { transform: translateY(1px); }
-
-    .settings { position: absolute; top: .75rem; inset-inline-end: .75rem; pointer-events: auto; }
-    .settings .panel { padding: .5rem .75rem; }
-    .settings details { cursor: pointer; }
-    .settings summary { list-style: none; }
-    .settings summary::-webkit-details-marker { display: none; }
-    .small { font-size: .8rem; opacity: .9; }
-    .muted { opacity: .7; }
-  </style>
+<meta charset="UTF-8">
+<title>لعبة صبي السكر - احترافية</title>
+<style>
+body { margin: 0; overflow: hidden; background-color: #a0e7e5; font-family: Arial, sans-serif; }
+canvas { display: block; margin: 0 auto; background: linear-gradient(to top, #80c080, #c0f0ff); }
+#info { position: absolute; top: 10px; left: 10px; font-size: 18px; color: #333; }
+#endScreen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); color:white; display:none; justify-content:center; align-items:center; flex-direction:column; font-size:24px; }
+#endScreen button { padding:10px 20px; margin-top:20px; font-size:20px; cursor:pointer; }
+</style>
 </head>
 <body>
-  <div id="game"></div>
-  <div class="hud">
-    <div class="panel" style="max-width: 520px;">
-      <h3>🎮 Diabetes Runner — ولد بيجري ويتأثر بالأكل وقياس السكر</h3>
-      <div class="row small"><span class="tag">هدفك</span><span>اجمع الأكل الصحي وتجنب غير الصحي. حافظ على السكر في النطاق الأخضر لتحصل على Boost.</span></div>
-      <div class="row"><span class="tag">السكر (mg/dL)</span> <strong id="glucoseText">—</strong></div>
-      <div class="row"><div class="meter"><div id="glucoseBar"></div></div></div>
-      <div class="row small muted"><span class="tag">الحالة</span> <span id="statusText">…</span></div>
-      <div class="row small muted"><span class="tag">نقاط</span> <span id="scoreText">0</span></div>
-    </div>
-    <div class="settings">
-      <details class="panel">
-        <summary>⚙️ إعدادات / Bluetooth</summary>
-        <div class="small" style="margin-top:.5rem">
-          <div class="row"><button id="btnConnect" class="btn">🔗 الاتصال بجهاز سكر (BLE)*</button></div>
-          <div class="muted">*تجريبي على الويب باستخدام Web Bluetooth. إن لم يكن لديك جهاز مدعوم، استخدم <strong>المحاكاة</strong> بالأسفل.</div>
-          <hr style="border-color: rgba(255,255,255,.12);">
-          <div class="row">محاكاة السكر: <button id="btnSimLow" class="btn">منخفض</button> <button id="btnSimOk" class="btn">طبيعي</button> <button id="btnSimHigh" class="btn">مرتفع</button></div>
-          <div class="row">انجراف تلقائي: <label><input type="checkbox" id="driftToggle" checked> مفعّل</label></div>
-        </div>
-      </details>
-    </div>
-  </div>
-  <div class="controls">
-    <button id="btnJump" class="btn">⤴️ قفز</button>
-    <button id="btnSlide" class="btn">⟂ انزلاق</button>
-    <button id="btnPause" class="btn">⏸️ إيقاف/استئناف</button>
-  </div>
+<div id="info">
+  الصحة: <span id="health">100</span> |
+  السكر: <span id="sugar">90</span> |
+  النقاط: <span id="score">0</span>
+</div>
+<div id="endScreen">
+  <div id="finalScore">النقاط النهائية: 0</div>
+  <div id="advice"></div>
+  <button onclick="restartGame()">إعادة اللعب</button>
+</div>
 
-  <!-- Phaser 3 CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.0/dist/phaser.min.js"></script>
-  <script>
-  ;(() => {
-    //////////////////////////////
-    // إعدادات عامة
-    //////////////////////////////
-    const TARGET_GLUCOSE = 110; // الهدف الصحي
-    const RANGE_LOW = 80;
-    const RANGE_HIGH = 140;
+<canvas id="gameCanvas" width="800" height="400"></canvas>
 
-    const world = { speed: 220, maxSpeed: 520, minSpeed: 120 };
-    const playerState = { glucose: 110, score: 0, fatigue: 0, alive: true };
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-    const ui = {
-      glucoseText: document.getElementById('glucoseText'),
-      glucoseBar: document.getElementById('glucoseBar'),
-      statusText: document.getElementById('statusText'),
-      scoreText: document.getElementById('scoreText'),
-      btnConnect: document.getElementById('btnConnect'),
-      btnSimLow: document.getElementById('btnSimLow'),
-      btnSimOk: document.getElementById('btnSimOk'),
-      btnSimHigh: document.getElementById('btnSimHigh'),
-      driftToggle: document.getElementById('driftToggle'),
-      btnJump: document.getElementById('btnJump'),
-      btnSlide: document.getElementById('btnSlide'),
-      btnPause: document.getElementById('btnPause'),
-    };
+let player = {
+  x: 50, y: 300, width: 50, height: 50,
+  health: 100, sugar: 90, sizeMultiplier: 1
+};
 
-    //////////////////////////////
-    // لعبة Phaser
-    //////////////////////////////
-    const config = {
-      type: Phaser.AUTO,
-      parent: 'game',
-      width: window.innerWidth,
-      height: window.innerHeight,
-      physics: { default: 'arcade', arcade: { gravity: { y: 1200 }, debug: false } },
-      backgroundColor: '#0b1020',
-      scene: { preload, create, update, extend: { spawnItem, spawnObstacle, applyGlucoseEffects } }
-    };
+let foods = [];
+let obstacles = [];
+let keys = {};
+let score = 0;
+let speed = 5;
 
-    let game = new Phaser.Game(config);
+// Sprites
+let playerImg = new Image();
+playerImg.src = "player_healthy.png";
 
-    window.addEventListener('resize', () => {
-      game.scale.resize(window.innerWidth, window.innerHeight);
-    });
+// Sounds
+let collectSound = new Audio("collect.mp3");
+let hitSound = new Audio("hit.mp3");
 
-    // متغيرات المشهد
-    let player, ground, groupFoods, groupBadFoods, groupObstacles, bgLayer, particles, pauseOverlay;
-    let cursors;
+// التحكم
+document.addEventListener('keydown', e => keys[e.code] = true);
+document.addEventListener('keyup', e => keys[e.code] = false);
 
-    function preload() {
-      // لا نستخدم صور خارجية — نرسم أشكالًا متجهة
-    }
+// توليد الطعام والعقبات
+function spawnFood() {
+  const type = Math.random() < 0.6 ? 'healthy' : 'unhealthy';
+  foods.push({
+    x: canvas.width, y: 300, width: 30, height: 30, type: type
+  });
+}
 
-    function create() {
-      const w = this.scale.width, h = this.scale.height;
+function spawnObstacle() {
+  obstacles.push({
+    x: canvas.width, y: 320, width: 30, height: 30, color: 'brown'
+  });
+}
 
-      // خلفية متحركة بسيطة (نجوم)
-      bgLayer = this.add.tileSprite(0, 0, w, h, null).setOrigin(0);
-      const g = this.add.graphics();
-      g.fillStyle(0x0f1736, 1); g.fillRect(0, 0, w, h);
-      g.generateTexture('bg', w, h);
-      bgLayer.setTexture('bg');
+// تحديث الصورة حسب الصحة
+function updatePlayerImage() {
+  if (player.health > 70) playerImg.src = "player_healthy.png";
+  else if (player.health > 30) playerImg.src = "player_medium.png";
+  else playerImg.src = "player_unhealthy.png";
+}
 
-      // الأرض
-      const groundH = 64;
-      const gg = this.add.graphics();
-      gg.fillStyle(0x14214a, 1); gg.fillRect(0, 0, w, groundH);
-      gg.generateTexture('ground', w, groundH);
-      ground = this.physics.add.staticImage(w/2, h - groundH/2, 'ground').setDepth(5);
+// التصادم
+function collide(a, b) {
+  return a.x < b.x + b.width &&
+         a.x + a.width * a.sizeMultiplier > b.x &&
+         a.y < b.y + b.height &&
+         a.y + a.height * a.sizeMultiplier > b.y;
+}
 
-      // اللاعب (ولد) — جسم بسيط + تغيير حجم/لون حسب الصحة
-      const pg = this.add.graphics();
-      pg.fillStyle(0x6ee7b7, 1); pg.fillRoundedRect(0, 0, 44, 56, 10);
-      pg.generateTexture('playerTex', 44, 56);
-      player = this.physics.add.sprite(160, h - groundH - 28, 'playerTex').setDepth(10);
-      player.setCollideWorldBounds(true);
+// تحديث المعلومات
+function updateInfo() {
+  document.getElementById('health').textContent = player.health;
+  document.getElementById('sugar').textContent = player.sugar;
+  document.getElementById('score').textContent = score;
+}
 
-      // مجموعات العناصر
-      groupFoods = this.physics.add.group();
-      groupBadFoods = this.physics.add.group();
-      groupObstacles = this.physics.add.group();
+// إعادة اللعبة
+function restartGame() {
+  player.health = 100; player.sugar = 90; score = 0; speed = 5;
+  player.sizeMultiplier = 1;
+  foods = []; obstacles = [];
+  document.getElementById('endScreen').style.display = 'none';
+  gameLoop();
+}
 
-      // اصطدامات
-      this.physics.add.collider(player, ground);
-      this.physics.add.collider(groupFoods, ground);
-      this.physics.add.collider(groupBadFoods, ground);
-      this.physics.add.collider(groupObstacles, ground);
+// التحديث
+function update() {
+  if (keys['ArrowUp'] && player.y > 0) player.y -= 5;
+  if (keys['ArrowDown'] && player.y + player.height < canvas.height) player.y += 5;
 
-      // تجميع العناصر
-      this.physics.add.overlap(player, groupFoods, (pl, item) => {
-        item.destroy();
-        playerState.score += 5;
-        // الأكل الصحي يقرب السكر من الهدف
-        playerState.glucose = lerp(playerState.glucose, TARGET_GLUCOSE, 0.5);
-        this.applyGlucoseEffects();
-        pulseTint(player, 0x22c55e);
-      });
+  foods.forEach(f => f.x -= speed);
+  obstacles.forEach(o => o.x -= speed);
 
-      this.physics.add.overlap(player, groupBadFoods, (pl, item) => {
-        item.destroy();
-        playerState.score = Math.max(0, playerState.score - 2);
-        // غير الصحي يرفع أو يخفض عشوائيًا بعيدًا عن الهدف
-        const delta = Phaser.Math.Between(10, 25) * (Math.random() > 0.5 ? 1 : -1);
-        playerState.glucose = clamp(playerState.glucose + delta, 50, 300);
-        this.applyGlucoseEffects();
-        pulseTint(player, 0xef4444);
-      });
-
-      this.physics.add.overlap(player, groupObstacles, (pl, obs) => {
-        // عقبة: فقدان طاقة وحركة
-        obs.destroy();
-        playerState.fatigue = Math.min(1, playerState.fatigue + 0.15);
-        world.speed = Math.max(world.minSpeed, world.speed - 40);
-        pulseTint(player, 0xf59e0b);
-      });
-
-      // مؤثرات جسيمات عند الجري
-      particles = this.add.particles(0xffffff);
-      const trail = particles.createEmitter({
-        speed: { min: -40, max: -120 },
-        angle: 180,
-        lifespan: 500,
-        alpha: { start: 0.6, end: 0 },
-        scale: { start: 0.8, end: 0.1 },
-        frequency: 60,
-        follow: player,
-        followOffset: { x: -18, y: 24 }
-      });
-
-      // إدخال
-      cursors = this.input.keyboard.createCursorKeys();
-      this.input.keyboard.on('keydown-SPACE', jump);
-      this.input.on('pointerdown', jump);
-      ui.btnJump.addEventListener('click', jump);
-      ui.btnSlide.addEventListener('click', slide);
-      ui.btnPause.addEventListener('click', () => { this.scene.isPaused() ? this.scene.resume() : this.scene.pause(); });
-
-      // Timers: توليد عناصر
-      this.time.addEvent({ delay: 950, loop: true, callback: () => spawnItem.call(this) });
-      this.time.addEvent({ delay: 1450, loop: true, callback: () => spawnObstacle.call(this) });
-
-      // طبقة إيقاف
-      pauseOverlay = this.add.text(w/2, h/2, 'متوقف مؤقتًا', { fontSize: '28px', color: '#e6ecff' }).setOrigin(0.5).setAlpha(0);
-      this.events.on('pause', () => pauseOverlay.setAlpha(0.95));
-      this.events.on('resume', () => pauseOverlay.setAlpha(0));
-
-      // بدء القيم
-      this.applyGlucoseEffects();
-      updateHUD();
-
-      // محاكاة انجراف السكر التدريجي
-      this.time.addEvent({ delay: 2000, loop: true, callback: () => {
-        if (!ui.driftToggle.checked) return;
-        // يميل نحو الهدف مع ضوضاء خفيفة
-        playerState.glucose = lerp(playerState.glucose, TARGET_GLUCOSE, 0.05) + Phaser.Math.Between(-3,3);
-        playerState.glucose = clamp(playerState.glucose, 50, 300);
-        this.applyGlucoseEffects();
-      }});
-
-      // أزرار المحاكاة
-      ui.btnSimLow.onclick = () => { playerState.glucose = 65; this.applyGlucoseEffects(); };
-      ui.btnSimOk.onclick = () => { playerState.glucose = 105; this.applyGlucoseEffects(); };
-      ui.btnSimHigh.onclick = () => { playerState.glucose = 210; this.applyGlucoseEffects(); };
-
-      // زر الاتصال (تجريبي)
-      ui.btnConnect.onclick = async () => {
-        try {
-          // ملاحظة: يحتاج HTTPS ومتصفح يدعم Web Bluetooth.
-          // أدناه استكشاف عام. يجب استبدال service/characteristic بقيم جهازك الحقيقي.
-          const serviceUUID = 0x1808; // Glucose Service (قياسي)
-          const characteristicUUID = 0x2A18; // Glucose Measurement (قد يكون للقراءة/الإخطار)
-          const device = await navigator.bluetooth.requestDevice({
-            filters: [{ services: [serviceUUID] }],
-            optionalServices: [serviceUUID]
-          });
-          const server = await device.gatt.connect();
-          const service = await server.getPrimaryService(serviceUUID);
-          const ch = await service.getCharacteristic(characteristicUUID);
-          await ch.startNotifications();
-          ch.addEventListener('characteristicvaluechanged', (ev) => {
-            const dv = ev.target.value; // DataView
-            // ⚠️ فك الترميز الفعلي يعتمد على مواصفات الجهاز.
-            // هنا قراءة تقريبية: نأخذ بايتًا كمثال ونحوّله لقيمة رمزية.
-            const raw = dv.getUint8(1) || 100; // مجرد مثال
-            // حوّل إلى mg/dL نطاق معقول
-            const mgdl = clamp(50 + raw, 50, 300);
-            playerState.glucose = mgdl;
-            this.applyGlucoseEffects();
-          });
-          toast(this, '✅ تم الاتصال بالجهاز — في انتظار البيانات');
-        } catch (e) {
-          console.warn(e);
-          toast(this, '❌ فشل الاتصال Web Bluetooth — استخدم المحاكاة أو تحقق من المتصفح/الأذونات');
-        }
-      };
-    }
-
-    function update(time, delta) {
-      if (!playerState.alive) return;
-
-      // تمرير الخلفية والأرض
-      bgLayer.tilePositionX += (world.speed * delta/1000) * 0.2;
-
-      // نقل العناصر نحو اليسار
-      const vx = -world.speed;
-      [...groupFoods.getChildren(), ...groupBadFoods.getChildren(), ...groupObstacles.getChildren()].forEach(o => o.setVelocityX(vx));
-
-      // تقليل التعب تدريجيًا
-      playerState.fatigue = Math.max(0, playerState.fatigue - delta/1000 * 0.1);
-
-      // تحديث HUD خفيف
-      if (time % 150 < 16) updateHUD();
-
-      // تعبير اللاعب (حجم/لون)
-      const scale = Phaser.Math.Clamp(1 + (getFitnessFactor() - 0.5) * 0.6, 0.75, 1.35);
-      player.setScale(scale);
-    }
-
-    //////////////////////////////
-    // مولدات العناصر
-    //////////////////////////////
-    function spawnItem() {
-      const h = this.scale.height; const y = Phaser.Math.Between(h - 240, h - 120);
-      const isHealthy = Math.random() > 0.45; // 55% صحي
-      const g = this.add.graphics();
-      const size = isHealthy ? 26 : 22;
-      if (isHealthy) {
-        // تفاحة خضراء
-        g.fillStyle(0x22c55e, 1); g.fillCircle(size, size, size);
-        g.fillStyle(0x166534, 1); g.fillRect(size-2, size-22, 4, 10);
-        g.generateTexture('apple'+Date.now(), size*2, size*2);
+  // تصادم الطعام
+  foods = foods.filter(f => {
+    if (collide(player, f)) {
+      if (f.type === 'healthy') {
+        player.health = Math.min(player.health + 5, 100);
+        player.sugar = Math.max(player.sugar - 2, 70);
+        player.sizeMultiplier += 0.05;
+        score += 10;
+        collectSound.play();
       } else {
-        // صودا حمراء
-        g.fillStyle(0xef4444, 1); g.fillRoundedRect(0, 0, size*1.5, size*2, 6);
-        g.fillStyle(0xffffff, .9); g.fillRect(4, size*1.1, size*1.5-8, 6);
-        g.generateTexture('soda'+Date.now(), size*1.5, size*2);
+        player.health = Math.max(player.health - 10, 0);
+        player.sugar = Math.min(player.sugar + 5, 150);
+        player.sizeMultiplier = Math.max(player.sizeMultiplier - 0.05, 0.5);
+        score -= 5;
+        hitSound.play();
       }
-      const key = g.defaultTextureKey;
-      const item = this.physics.add.sprite(this.scale.width + 40, y, key).setDepth(8);
-      isHealthy ? groupFoods.add(item) : groupBadFoods.add(item);
-      item.setVelocityX(-world.speed);
-      item.body.setAllowGravity(false);
-      // تنظيف
-      item.setData('cleanup', this.time.delayedCall(8000, () => item.destroy()));
+      updateInfo();
+      updatePlayerImage();
+      return false;
     }
+    return f.x + f.width > 0;
+  });
 
-    function spawnObstacle() {
-      const h = this.scale.height; const y = h - 64 - 18;
-      const w = Phaser.Math.Between(24, 48), hh = Phaser.Math.Between(28, 44);
-      const g = this.add.graphics();
-      g.fillStyle(0xf59e0b, 1); g.fillRoundedRect(0, 0, w, hh, 6);
-      g.generateTexture('ob'+Date.now(), w, hh);
-      const ob = this.physics.add.sprite(this.scale.width + 40, y - (hh/2), g.defaultTextureKey).setDepth(7);
-      groupObstacles.add(ob);
-      ob.setVelocityX(-world.speed);
-      ob.setImmovable(true);
+  // تصادم العقبات
+  obstacles = obstacles.filter(o => {
+    if (collide(player, o)) {
+      player.health = Math.max(player.health - 5, 0);
+      hitSound.play();
+      updateInfo();
+      updatePlayerImage();
+      return false;
     }
+    return o.x + o.width > 0;
+  });
 
-    //////////////////////////////
-    // منطق السكر وتأثيراته
-    //////////////////////////////
-    function applyGlucoseEffects() {
-      // السرعة/الألوان بناءً على نطاق السكر
-      const g = playerState.glucose;
-      if (g < RANGE_LOW) {
-        world.speed = lerp(world.speed, 0.85 * world.maxSpeed, 0.08); // بطيء
-        ui.statusText.textContent = 'منخفض — تناول وجبة خفيفة صحية';
-      } else if (g > RANGE_HIGH) {
-        world.speed = lerp(world.speed, 0.9 * world.minSpeed, 0.1); // أبطأ
-        ui.statusText.textContent = 'مرتفع — تجنب السكريات وواصل الحركة';
-      } else {
-        world.speed = lerp(world.speed, 0.75 * world.maxSpeed, 0.15); // Boost
-        ui.statusText.textContent = 'ضمن النطاق — Boost نشط!';
-      }
-      updateHUD();
-    }
+  // صعوبة متزايدة
+  if (score > 0 && score % 100 === 0) speed = 5 + Math.floor(score/100);
+}
 
-    //////////////////////////////
-    // تحكم اللاعب
-    //////////////////////////////
-    function jump() {
-      if (!player.body) return;
-      if (player.body.touching.down) {
-        player.setVelocityY(-520);
-      }
-    }
-    function slide() {
-      if (!player.body) return;
-      // انكماش مؤقت لمحاكاة الانزلاق
-      const oldScale = player.scaleX;
-      player.setScale(oldScale, oldScale*0.7);
-      setTimeout(() => player.setScale(oldScale), 300);
-    }
+// الرسم
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(playerImg, player.x, player.y, player.width * player.sizeMultiplier, player.height * player.sizeMultiplier);
 
-    //////////////////////////////
-    // أدوات مساعدة وواجهة
-    //////////////////////////////
-    function updateHUD() {
-      ui.glucoseText.textContent = Math.round(playerState.glucose);
-      const pct = Phaser.Math.Clamp((playerState.glucose - 50) / (300 - 50), 0, 1) * 100;
-      ui.glucoseBar.style.width = pct + '%';
-      ui.scoreText.textContent = playerState.score;
-      // لون الشريط حسب الحالة بإزاحة CSS (نفس التدرج لكن الحركة تعطي انطباعًا مختلفًا)
-      const hueShift = (playerState.glucose < RANGE_LOW) ? 0 : (playerState.glucose > RANGE_HIGH ? 100 : 50);
-      ui.glucoseBar.style.filter = `hue-rotate(${hueShift}deg)`;
-    }
+  foods.forEach(f => {
+    let img = new Image();
+    img.src = f.type === 'healthy' ? "food_healthy.png" : "food_unhealthy.png";
+    ctx.drawImage(img, f.x, f.y, f.width, f.height);
+  });
 
-    function pulseTint(sprite, color) {
-      sprite.setTint(color);
-      setTimeout(() => sprite.clearTint(), 180);
-    }
+  obstacles.forEach(o => {
+    ctx.fillStyle = o.color;
+    ctx.fillRect(o.x, o.y, o.width, o.height);
+  });
+}
 
-    function toast(scene, text) {
-      const t = scene.add.text(scene.scale.width/2, 80, text, { fontSize: '16px', color: '#e6ecff', backgroundColor: 'rgba(0,0,0,.35)', padding: {x:10,y:6} }).setOrigin(0.5).setDepth(100);
-      scene.tweens.add({ targets: t, alpha: 0, y: 40, duration: 1600, ease: 'Sine.easeOut', onComplete: () => t.destroy() });
-    }
+// شاشة النهاية
+function gameOver() {
+  document.getElementById('finalScore').textContent = "النقاط النهائية: " + score;
+  let advice = "حافظ على غذائك الصحي لمستوى سكر متوازن!";
+  if(player.sugar > 120) advice = "انتباه! مستوى السكر مرتفع. حاول تجنب السكر.";
+  document.getElementById('advice').textContent = advice;
+  document.getElementById('endScreen').style.display = 'flex';
+}
 
-    function getFitnessFactor() {
-      // 0..1 — أعلى في النطاق الصحي
-      const g = playerState.glucose;
-      if (g < RANGE_LOW) return 0.45;
-      if (g > RANGE_HIGH) return 0.35;
-      return 0.9;
-    }
+// اللعبة الرئيسية
+let foodTimer = 0;
+let obstacleTimer = 0;
 
-    // Math helpers
-    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-    function lerp(a,b,t){ return a + (b - a) * t; }
-  })();
-  </script>
+function gameLoop() {
+  update();
+  draw();
+
+  foodTimer++;
+  if (foodTimer > 50) { spawnFood(); foodTimer = 0; }
+
+  obstacleTimer++;
+  if (obstacleTimer > 120) { spawnObstacle(); obstacleTimer = 0; }
+
+  if (player.health > 0) {
+    requestAnimationFrame(gameLoop);
+  } else {
+    gameOver();
+  }
+}
+
+updateInfo();
+updatePlayerImage();
+gameLoop();
+
+</script>
 </body>
 </html>
+
